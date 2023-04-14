@@ -28,7 +28,7 @@ class VaccinationServerLive(vaccinationService: VaccinationService) extends Vacc
   )
 
   private val getVaccinationInputErrorOut = oneOf[VaccinationError](
-    oneOfVariant(StatusCode.BadRequest, jsonBody[VaccinationError.InvalidInput].description("Invalida input."))
+    oneOfVariant(StatusCode.BadRequest, jsonBody[VaccinationError.InvalidInput].description("Invalid input."))
   )
 
   private val vaccinationList = jsonBody[Vaccinations].example(Vaccinations(VACCINATION_LIST))
