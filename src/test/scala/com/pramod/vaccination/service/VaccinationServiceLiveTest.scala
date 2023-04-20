@@ -16,7 +16,7 @@ import zio.test.Assertion._
 import zio.{ZIO, ZLayer}
 
 object VaccinationServiceLiveTest extends ZIOSpecDefault {
-  def spec = suite("VaccinationServiceLive") {
+  def spec = suite("VaccinationServiceLive")(
 
     test("updateVaccination method updates an existing vaccination with valid input") {
       val service = new VaccinationServiceLive()
@@ -25,14 +25,14 @@ object VaccinationServiceLiveTest extends ZIOSpecDefault {
       for {
         result <- service.updateVaccination(validVaccinationId, updatedVaccinationDetails).map(_.vaccinationList)
       } yield assertTrue(result == service.VACCINATION_LIST.toList)
-    }
+    },
 
     test("getAllVaccination should return all vaccinations") {
       val service = new VaccinationServiceLive()
       for {
         vaccinations <- service.getAllVaccination()
       } yield assert(vaccinations.vaccinationList)(hasSameElements(service.VACCINATION_LIST.toList))
-    }
+    },
 
     test("getVaccinationById should return correct vaccination for valid vaccinationId") {
       val vaccinationId = 1
@@ -40,7 +40,7 @@ object VaccinationServiceLiveTest extends ZIOSpecDefault {
       for {
         vaccination <- service.getVaccinationById(vaccinationId)
       } yield assert(vaccination.vaccinationId)(equalTo(vaccinationId))
-    }
+    },
 
     /*test("getVaccinationById should fail with NotFound error for invalid vaccinationId") {
       val vaccinationId = 100
@@ -59,7 +59,7 @@ object VaccinationServiceLiveTest extends ZIOSpecDefault {
         updatedVaccination <- service.getVaccinationById(vaccinationId)
       } yield assert(vaccinations.vaccinationList)(hasSameElements(service.VACCINATION_LIST.toList)) &&
         assertTrue(updatedVaccination == updatedVaccinationDetails)
-    }
+    },
 
     /*test("updateVaccination should fail with InvalidInput error for invalid vaccinationId") {
       val vaccinationId = 100
@@ -69,6 +69,6 @@ object VaccinationServiceLiveTest extends ZIOSpecDefault {
         result <- service.updateVaccination(vaccinationId, updatedVaccinationDetails)
       } yield assert(result)(fails(equalTo(VaccinationError.InvalidInput(s"Update is failed. Vaccination Id is not available $vaccinationId"))))
     }*/
-  }
+  )
 
 }
