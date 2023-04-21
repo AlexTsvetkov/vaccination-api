@@ -4,6 +4,7 @@ import com.pramod.vaccination.exception.VaccinationError
 import com.pramod.vaccination.model.{VaccinationDetails, Vaccinations}
 import zio.{ZIO, ZLayer}
 
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 trait VaccinationService {
@@ -16,23 +17,36 @@ trait VaccinationService {
   def addVaccination(newVaccinationDetails: VaccinationDetails): ZIO[Any, VaccinationError.InvalidInput, Vaccinations]
 
   def deleteVaccination(vaccinationId: Int): ZIO[Any, VaccinationError.InvalidInput, Unit]
+  
+  def getVaccinationList: ListBuffer[VaccinationDetails]
 }
 
 object VaccinationService {
+  val VACCINATION_LIST: ListBuffer[VaccinationDetails] = ListBuffer(VaccinationDetails(1, "Pfizer", "USA"),
+    VaccinationDetails(2, "Moderna", "Russia"),
+    VaccinationDetails(3, "Sinopharm", "China"))
+
   lazy val live: ZLayer[Any, Nothing, VaccinationService] = ZLayer {
     ZIO.succeed(VaccinationServiceLive())
   }
 }
 
 class VaccinationServiceLive extends VaccinationService {
+  def create(vaccinationList: ListBuffer[VaccinationDetails]): VaccinationServiceLive = {
+    val serviceLive = new VaccinationServiceLive()
+    serviceLive.vaccinationList = vaccinationList
+    serviceLive
+  }
 
-  var VACCINATION_LIST = ListBuffer(VaccinationDetails(1, "Pfizer", "USA"),
-    VaccinationDetails(2, "Moderna", "Russia"),
-    VaccinationDetails(3, "Sinopharm", "China"))
+  import com.pramod.vaccination.service.VaccinationService
+
+  var vaccinationList: ListBuffer[VaccinationDetails] = VaccinationService.VACCINATION_LIST
+
+  override def getVaccinationList: ListBuffer[VaccinationDetails] = vaccinationList
 
   override def getAllVaccination(): ZIO[Any, Nothing, Vaccinations] = {
     ZIO.logInfo("Get all vaccinations") *>
-      ZIO.succeed(Vaccinations(VACCINATION_LIST.toList))
+      ZIO.succeed(Vaccinations(vaccinationList.toList))
   }
 
   override def getVaccinationById(vaccinationId: Int): ZIO[Any, VaccinationError.NotFound, VaccinationDetails] = {
@@ -43,11 +57,11 @@ class VaccinationServiceLive extends VaccinationService {
   }
 
   override def updateVaccination(vaccinationId: Int, updatedVaccinationDetails: VaccinationDetails): ZIO[Any, VaccinationError.InvalidInput, Vaccinations] = {
-    VACCINATION_LIST.find(vacDetail => vacDetail.vaccinationId.equals(vaccinationId)) match {
+    vaccinationList.find(vacDetail => vacDetail.vaccinationId.equals(vaccinationId)) match {
       case Some(vacDetails) =>
-        VACCINATION_LIST.update(VACCINATION_LIST.indexOf(vacDetails), updatedVaccinationDetails)
+        vaccinationList.update(vaccinationList.indexOf(vacDetails), updatedVaccinationDetails)
         ZIO.logInfo(s"Update vaccination for vaccinationId : $vaccinationId") *>
-          ZIO.succeed(Vaccinations(VACCINATION_LIST.toList))
+          ZIO.succeed(Vaccinations(vaccinationList.toList))
       case _ =>
         ZIO.logInfo(s"Update vaccination for vaccinationId : $vaccinationId") *>
           ZIO.fail(VaccinationError.InvalidInput(s"Update is failed. Vaccination Id is not available $vaccinationId"))
@@ -55,11 +69,11 @@ class VaccinationServiceLive extends VaccinationService {
   }
 
   override def addVaccination(newVaccinationDetails: VaccinationDetails): ZIO[Any, VaccinationError.InvalidInput, Vaccinations] = {
-    VACCINATION_LIST.find(vacDetail => vacDetail.vaccinationId.equals(newVaccinationDetails.vaccinationId)) match {
+    vaccinationList.find(vacDetail => vacDetail.vaccinationId.equals(newVaccinationDetails.vaccinationId)) match {
       case None =>
-        VACCINATION_LIST += newVaccinationDetails
+        vaccinationList += newVaccinationDetails
         ZIO.logInfo(s"Insert vaccination for vaccinationId : ${newVaccinationDetails.vaccinationId}") *>
-          ZIO.succeed(Vaccinations(VACCINATION_LIST.toList))
+          ZIO.succeed(Vaccinations(vaccinationList.toList))
       case Some(vacDetails) =>
         ZIO.logInfo(s"new vaccination is not added. Already exist same vaccinationId : ${vacDetails.vaccinationId}") *>
           ZIO.fail(VaccinationError.InvalidInput(s"Insert is failed. Vaccination Id is already available ${vacDetails.vaccinationId}"))
@@ -67,9 +81,9 @@ class VaccinationServiceLive extends VaccinationService {
   }
 
   override def deleteVaccination(vaccinationId: Int): ZIO[Any, VaccinationError.InvalidInput, Unit] = {
-    VACCINATION_LIST.find(vacDetail => vacDetail.vaccinationId.equals(vaccinationId)) match {
+    vaccinationList.find(vacDetail => vacDetail.vaccinationId.equals(vaccinationId)) match {
       case Some(vacDetails) =>
-        VACCINATION_LIST -= vacDetails
+        vaccinationList -= vacDetails
         ZIO.logInfo(s"Deleted vaccination for vaccinationId : $vaccinationId") *>
           ZIO.succeed(())
       case _ =>
@@ -78,6 +92,6 @@ class VaccinationServiceLive extends VaccinationService {
     }
   }
 
-  private val vaccinationDetails: Int => Option[VaccinationDetails] = (vacId: Int) => VACCINATION_LIST.find(vacDetails => vacDetails.vaccinationId.equals(vacId))
+  private val vaccinationDetails: Int => Option[VaccinationDetails] = (vacId: Int) => vaccinationList.find(vacDetails => vacDetails.vaccinationId.equals(vacId))
 
 }
