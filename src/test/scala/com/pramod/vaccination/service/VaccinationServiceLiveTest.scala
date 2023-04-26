@@ -44,13 +44,22 @@ object VaccinationServiceLiveTest extends ZIOSpecDefault {
       } yield assert(vaccination.vaccinationId)(equalTo(vaccinationId))
     },
 
-    /*test("getVaccinationById should fail with NotFound error for invalid vaccinationId") {
+    test("getVaccinationById should fail with NotFound error for invalid vaccinationId") {
       val vaccinationId = 100
       for {
-        service <- ZIO.service[VaccinationService]
-        result <- service.getVaccinationById(vaccinationId)
-      } yield assert(result)(fails(equalTo(Exit.fail(VaccinationError.NotFound(s"Vaccination not found for $vaccinationId")))))
-    },*/
+        service <- ZIO.service[VaccinationService.Service]
+        result <- service.getVaccinationById(vaccinationId).exit
+      } yield assert(result)(
+        fails(equalTo(VaccinationError.NotFound(s"Vaccination not found for $vaccinationId"))))
+    },
+
+    test("Example of testing for expected failure") {
+      for {
+        result <- ZIO.fail("failureResult").exit
+      } yield assert(result)(
+        fails(equalTo("failureResult"))
+      )
+    },
 
     test("updateVaccination should update vaccination details for valid vaccinationId") {
       val vaccinationId = 1
@@ -61,16 +70,16 @@ object VaccinationServiceLiveTest extends ZIOSpecDefault {
         updatedVaccination <- service.getVaccinationById(vaccinationId)
       } yield assert(vaccinations.vaccinationList)(hasSameElements(service.getVaccinationList.toList)) &&
         assertTrue(updatedVaccination == updatedVaccinationDetails)
-    }
+    },
 
-    /*test("updateVaccination should fail with InvalidInput error for invalid vaccinationId") {
+    test("updateVaccination should fail with InvalidInput error for invalid vaccinationId") {
       val vaccinationId = 100
       val updatedVaccinationDetails = VaccinationDetails(1, "Pfizer", "USA")
-      val service = new VaccinationServiceLive()
       for {
-        result <- service.updateVaccination(vaccinationId, updatedVaccinationDetails)
+        service <- ZIO.service[VaccinationService.Service]
+        result <- service.updateVaccination(vaccinationId, updatedVaccinationDetails).exit
       } yield assert(result)(fails(equalTo(VaccinationError.InvalidInput(s"Update is failed. Vaccination Id is not available $vaccinationId"))))
-    }*/
+    }
   ).provideLayer(vaccinationServiceLayer)
 
 }
