@@ -15,7 +15,7 @@ import sttp.tapir.swagger.SwaggerUI
 import sttp.tapir.ztapir.*
 import zhttp.http.{Http, HttpApp, Request, Response}
 
-class VaccinationServerLive(vaccinationService: VaccinationService) extends VaccinationServer {
+class VaccinationServerLive(vaccinationService: VaccinationService.Service) extends VaccinationServer {
 
   private val VACCINATION_LIST = List(VaccinationDetails(1, "Pfizer", "USA"),
     VaccinationDetails(2, "Moderna", "Russia"),

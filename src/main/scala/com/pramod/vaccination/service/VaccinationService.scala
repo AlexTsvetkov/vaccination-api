@@ -2,36 +2,39 @@ package com.pramod.vaccination.service
 
 import com.pramod.vaccination.exception.VaccinationError
 import com.pramod.vaccination.model.{VaccinationDetails, Vaccinations}
+import com.pramod.vaccination.service.VaccinationService.Service
 import zio.{ZIO, ZLayer}
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
-trait VaccinationService {
-  def getAllVaccination(): ZIO[Any, Nothing, Vaccinations]
-
-  def getVaccinationById(vaccinationId: Int): ZIO[Any, VaccinationError.NotFound, VaccinationDetails]
-
-  def updateVaccination(vaccinationId: Int, updatedVaccinationDetails: VaccinationDetails): ZIO[Any, VaccinationError.InvalidInput, Vaccinations]
-
-  def addVaccination(newVaccinationDetails: VaccinationDetails): ZIO[Any, VaccinationError.InvalidInput, Vaccinations]
-
-  def deleteVaccination(vaccinationId: Int): ZIO[Any, VaccinationError.InvalidInput, Unit]
-  
-  def getVaccinationList: ListBuffer[VaccinationDetails]
-}
 
 object VaccinationService {
+
+  trait Service {
+    def getAllVaccination(): ZIO[Any, Nothing, Vaccinations]
+
+    def getVaccinationById(vaccinationId: Int): ZIO[Any, VaccinationError.NotFound, VaccinationDetails]
+
+    def updateVaccination(vaccinationId: Int, updatedVaccinationDetails: VaccinationDetails): ZIO[Any, VaccinationError.InvalidInput, Vaccinations]
+
+    def addVaccination(newVaccinationDetails: VaccinationDetails): ZIO[Any, VaccinationError.InvalidInput, Vaccinations]
+
+    def deleteVaccination(vaccinationId: Int): ZIO[Any, VaccinationError.InvalidInput, Unit]
+
+    def getVaccinationList: ListBuffer[VaccinationDetails]
+  }
+
   val VACCINATION_LIST: ListBuffer[VaccinationDetails] = ListBuffer(VaccinationDetails(1, "Pfizer", "USA"),
     VaccinationDetails(2, "Moderna", "Russia"),
     VaccinationDetails(3, "Sinopharm", "China"))
 
-  lazy val live: ZLayer[Any, Nothing, VaccinationService] = ZLayer {
+  lazy val live: ZLayer[Any, Nothing, VaccinationService.Service] = ZLayer {
     ZIO.succeed(VaccinationServiceLive())
   }
 }
 
-class VaccinationServiceLive extends VaccinationService {
+class VaccinationServiceLive extends VaccinationService.Service {
   def create(vaccinationList: ListBuffer[VaccinationDetails]): VaccinationServiceLive = {
     val serviceLive = new VaccinationServiceLive()
     serviceLive.vaccinationList = vaccinationList

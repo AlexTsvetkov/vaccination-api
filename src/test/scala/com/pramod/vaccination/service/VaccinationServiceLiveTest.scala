@@ -16,7 +16,7 @@ object VaccinationServiceLiveTest extends ZIOSpecDefault {
     VaccinationDetails(3, "Sinopharm", "China")
   )
 
-  val vaccinationServiceLayer: ULayer[VaccinationService] = ZLayer.succeed(new VaccinationServiceLive().create(vaccinationList))
+  val vaccinationServiceLayer: ULayer[VaccinationService.Service] = ZLayer.succeed(new VaccinationServiceLive().create(vaccinationList))
 
   def spec = suite("VaccinationServiceLive")(
 
@@ -24,14 +24,14 @@ object VaccinationServiceLiveTest extends ZIOSpecDefault {
       val validVaccinationId = 2
       val updatedVaccinationDetails = VaccinationDetails(2, "Moderna", "USA")
       for {
-        service <- ZIO.service[VaccinationService]
+        service <- ZIO.service[VaccinationService.Service]
         result <- service.updateVaccination(validVaccinationId, updatedVaccinationDetails).map(_.vaccinationList)
       } yield assertTrue(result == service.getVaccinationList.toList)
     },
 
     test("getAllVaccination should return all vaccinations") {
       for {
-        service <- ZIO.service[VaccinationService]
+        service <- ZIO.service[VaccinationService.Service]
         vaccinations <- service.getAllVaccination()
       } yield assert(vaccinations.vaccinationList)(hasSameElements(service.getVaccinationList.toList))
     },
@@ -39,7 +39,7 @@ object VaccinationServiceLiveTest extends ZIOSpecDefault {
     test("getVaccinationById should return correct vaccination for valid vaccinationId") {
       val vaccinationId = 1
       for {
-        service <- ZIO.service[VaccinationService]
+        service <- ZIO.service[VaccinationService.Service]
         vaccination <- service.getVaccinationById(vaccinationId)
       } yield assert(vaccination.vaccinationId)(equalTo(vaccinationId))
     },
@@ -56,7 +56,7 @@ object VaccinationServiceLiveTest extends ZIOSpecDefault {
       val vaccinationId = 1
       val updatedVaccinationDetails = VaccinationDetails(1, "Pfizer", "USA")
       for {
-        service <- ZIO.service[VaccinationService]
+        service <- ZIO.service[VaccinationService.Service]
         vaccinations <- service.updateVaccination(vaccinationId, updatedVaccinationDetails)
         updatedVaccination <- service.getVaccinationById(vaccinationId)
       } yield assert(vaccinations.vaccinationList)(hasSameElements(service.getVaccinationList.toList)) &&

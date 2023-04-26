@@ -4,7 +4,6 @@ import com.pramod.vaccination.exception
 import com.pramod.vaccination.exception.VaccinationError
 import com.pramod.vaccination.model.{VaccinationDetails, Vaccinations}
 import com.pramod.vaccination.service.VaccinationService
-import zio.*
 import sttp.apispec.openapi.circe.yaml.*
 import sttp.model.StatusCode
 import sttp.tapir.PublicEndpoint
@@ -14,6 +13,7 @@ import sttp.tapir.server.ziohttp.ZioHttpInterpreter
 import sttp.tapir.swagger.SwaggerUI
 import sttp.tapir.ztapir.*
 import zhttp.http.{Http, HttpApp, Request, Response}
+import zio.*
 
 trait VaccinationServer {
   def httpRoutes: ZIO[Any, Nothing, HttpApp[Any, Throwable]]
@@ -21,9 +21,9 @@ trait VaccinationServer {
 
 object VaccinationServer {
 
-  lazy val live: ZLayer[VaccinationService, Nothing, VaccinationServer] = ZLayer {
+  lazy val live: ZLayer[VaccinationService.Service, Nothing, VaccinationServer] = ZLayer {
     for {
-      vaccinationService <- ZIO.service[VaccinationService]
+      vaccinationService <- ZIO.service[VaccinationService.Service]
     } yield VaccinationServerLive(vaccinationService)
   }
 
