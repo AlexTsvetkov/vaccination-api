@@ -16,7 +16,7 @@ object VaccinationServiceLiveTest extends ZIOSpecDefault {
     VaccinationDetails(3, "Sinopharm", "China")
   )
 
-  val vaccinationServiceLayer = VaccinationRepository.live >>> VaccinationService.live ++ VaccinationRepository.live
+  val vaccinationServiceLayer: ZLayer[Any, Nothing, VaccinationService.Service with VaccinationRepository.Service] = VaccinationRepository.live >>> VaccinationService.live ++ VaccinationRepository.live
 
   def spec = suite("VaccinationServiceLive")(
 
