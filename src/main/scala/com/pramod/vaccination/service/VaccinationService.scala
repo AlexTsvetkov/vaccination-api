@@ -3,7 +3,7 @@ package com.pramod.vaccination.service
 import com.pramod.vaccination.exception.VaccinationError
 import com.pramod.vaccination.model.{VaccinationDetails, Vaccinations}
 import com.pramod.vaccination.service.VaccinationService.Service
-import zio.{ZIO, ZLayer}
+import zio.{ZEnvironment, ZIO, ZLayer}
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -25,31 +25,28 @@ object VaccinationService {
     def getVaccinationList: ListBuffer[VaccinationDetails]
   }
 
-  val VACCINATION_LIST: ListBuffer[VaccinationDetails] = ListBuffer(VaccinationDetails(1, "Pfizer", "USA"),
-    VaccinationDetails(2, "Moderna", "Russia"),
-    VaccinationDetails(3, "Sinopharm", "China"))
 
-  lazy val live: ZLayer[Any, Nothing, VaccinationService.Service] = ZLayer {
-    ZIO.succeed(VaccinationServiceLive())
-  }
+  def create(repository: VaccinationRepository.Service): VaccinationService.Service =
+    new VaccinationServiceLive(repository)
+
+  lazy val live: ZLayer[VaccinationRepository.Service, Nothing, VaccinationService.Service] =
+    ZLayer {
+      for {
+        repo: VaccinationRepository.Service <- ZIO.service[VaccinationRepository.Service]
+      } yield create(repo)
+    }
+  
 }
 
-class VaccinationServiceLive extends VaccinationService.Service {
-  def create(vaccinationList: ListBuffer[VaccinationDetails]): VaccinationServiceLive = {
-    val serviceLive = new VaccinationServiceLive()
-    serviceLive.vaccinationList = vaccinationList
-    serviceLive
-  }
+class VaccinationServiceLive(repository: VaccinationRepository.Service) extends VaccinationService.Service {
 
   import com.pramod.vaccination.service.VaccinationService
 
-  var vaccinationList: ListBuffer[VaccinationDetails] = VaccinationService.VACCINATION_LIST
-
-  override def getVaccinationList: ListBuffer[VaccinationDetails] = vaccinationList
+  override def getVaccinationList: ListBuffer[VaccinationDetails] = repository.getVaccinations
 
   override def getAllVaccination(): ZIO[Any, Nothing, Vaccinations] = {
     ZIO.logInfo("Get all vaccinations") *>
-      ZIO.succeed(Vaccinations(vaccinationList.toList))
+      ZIO.succeed(Vaccinations(repository.getVaccinations.toList))
   }
 
   override def getVaccinationById(vaccinationId: Int): ZIO[Any, VaccinationError.NotFound, VaccinationDetails] = {
@@ -60,11 +57,11 @@ class VaccinationServiceLive extends VaccinationService.Service {
   }
 
   override def updateVaccination(vaccinationId: Int, updatedVaccinationDetails: VaccinationDetails): ZIO[Any, VaccinationError.InvalidInput, Vaccinations] = {
-    vaccinationList.find(vacDetail => vacDetail.vaccinationId.equals(vaccinationId)) match {
+    vaccinationDetails(vaccinationId) match {
       case Some(vacDetails) =>
-        vaccinationList.update(vaccinationList.indexOf(vacDetails), updatedVaccinationDetails)
+        repository.getVaccinations.update(repository.getVaccinations.indexOf(vacDetails), updatedVaccinationDetails)
         ZIO.logInfo(s"Update vaccination for vaccinationId : $vaccinationId") *>
-          ZIO.succeed(Vaccinations(vaccinationList.toList))
+          ZIO.succeed(Vaccinations(repository.getVaccinations.toList))
       case _ =>
         ZIO.logInfo(s"Update vaccination for vaccinationId : $vaccinationId") *>
           ZIO.fail(VaccinationError.InvalidInput(s"Update is failed. Vaccination Id is not available $vaccinationId"))
@@ -72,11 +69,11 @@ class VaccinationServiceLive extends VaccinationService.Service {
   }
 
   override def addVaccination(newVaccinationDetails: VaccinationDetails): ZIO[Any, VaccinationError.InvalidInput, Vaccinations] = {
-    vaccinationList.find(vacDetail => vacDetail.vaccinationId.equals(newVaccinationDetails.vaccinationId)) match {
+    vaccinationDetails(newVaccinationDetails.vaccinationId) match {
       case None =>
-        vaccinationList += newVaccinationDetails
+        repository.getVaccinations += newVaccinationDetails
         ZIO.logInfo(s"Insert vaccination for vaccinationId : ${newVaccinationDetails.vaccinationId}") *>
-          ZIO.succeed(Vaccinations(vaccinationList.toList))
+          ZIO.succeed(Vaccinations(repository.getVaccinations.toList))
       case Some(vacDetails) =>
         ZIO.logInfo(s"new vaccination is not added. Already exist same vaccinationId : ${vacDetails.vaccinationId}") *>
           ZIO.fail(VaccinationError.InvalidInput(s"Insert is failed. Vaccination Id is already available ${vacDetails.vaccinationId}"))
@@ -84,9 +81,9 @@ class VaccinationServiceLive extends VaccinationService.Service {
   }
 
   override def deleteVaccination(vaccinationId: Int): ZIO[Any, VaccinationError.InvalidInput, Unit] = {
-    vaccinationList.find(vacDetail => vacDetail.vaccinationId.equals(vaccinationId)) match {
+    vaccinationDetails(vaccinationId) match {
       case Some(vacDetails) =>
-        vaccinationList -= vacDetails
+        repository.getVaccinations -= vacDetails
         ZIO.logInfo(s"Deleted vaccination for vaccinationId : $vaccinationId") *>
           ZIO.succeed(())
       case _ =>
@@ -95,6 +92,6 @@ class VaccinationServiceLive extends VaccinationService.Service {
     }
   }
 
-  private val vaccinationDetails: Int => Option[VaccinationDetails] = (vacId: Int) => vaccinationList.find(vacDetails => vacDetails.vaccinationId.equals(vacId))
+  private val vaccinationDetails: Int => Option[VaccinationDetails] = (vacId: Int) => repository.getVaccinations.find(vacDetails => vacDetails.vaccinationId.equals(vacId))
 
 }

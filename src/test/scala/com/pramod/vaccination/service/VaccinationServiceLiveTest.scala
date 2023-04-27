@@ -16,7 +16,7 @@ object VaccinationServiceLiveTest extends ZIOSpecDefault {
     VaccinationDetails(3, "Sinopharm", "China")
   )
 
-  val vaccinationServiceLayer: ULayer[VaccinationService.Service] = ZLayer.succeed(new VaccinationServiceLive().create(vaccinationList))
+  val vaccinationServiceLayer = VaccinationRepository.live >>> VaccinationService.live ++ VaccinationRepository.live
 
   def spec = suite("VaccinationServiceLive")(
 
@@ -25,8 +25,9 @@ object VaccinationServiceLiveTest extends ZIOSpecDefault {
       val updatedVaccinationDetails = VaccinationDetails(2, "Moderna", "USA")
       for {
         service <- ZIO.service[VaccinationService.Service]
+        repo <- ZIO.service[VaccinationRepository.Service]
         result <- service.updateVaccination(validVaccinationId, updatedVaccinationDetails).map(_.vaccinationList)
-      } yield assertTrue(result == service.getVaccinationList.toList)
+      } yield assertTrue(result == repo.getVaccinations.toList)
     },
 
     test("getAllVaccination should return all vaccinations") {
